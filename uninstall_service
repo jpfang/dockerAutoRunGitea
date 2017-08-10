@@ -1,0 +1,31 @@
+#!/bin/sh
+
+source ${PWD}/stop_service
+
+uninstallMysql()
+{
+	if [ -f ${mysqlContainerID} ] && [ "`cat ${mysqlContainerID}`" != "" ]; then
+		printf "${COLOR_YELLOW}Removing${COLOR_END} ${COLOR_GREEN}${mysqlContainerName}...${COLOR_END}\n"
+		
+		docker rm `cat ${mysqlContainerID}` > ${nullDev}
+		rm ${mysqlContainerID}
+	else
+		printf "${COLOR_YELLOW}${mysqlContainerName}${COLOR_END} ${COLOR_RED}not exist in docker!${COLOR_END}\n"
+	fi
+}
+
+uninstallGitea()
+{
+	if [ -f ${giteaContainerID} ] && [ "`cat ${giteaContainerID}`" != "" ]; then
+		printf "${COLOR_YELLOW}Removing${COLOR_END} ${COLOR_GREEN}${giteaContainerName}...${COLOR_END}\n"
+
+		docker rm `cat ${giteaContainerID}` > ${nullDev}
+		rm ${giteaContainerID}
+	else
+		printf "${COLOR_YELLOW}${giteaContainerName}${COLOR_END} ${COLOR_RED}not exist in docker!${COLOR_END}\n"
+	fi
+}
+
+uninstallMysql
+
+uninstallGitea

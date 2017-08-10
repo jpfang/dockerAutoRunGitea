@@ -1,0 +1,27 @@
+#!/bin/sh
+dockerGiteaImage=gitea/gitea:latest
+dockerMysqlImage=mysql
+
+giteaData=${PWD}/giteaData
+mysqlData=${PWD}/mysqlData
+mysqlDatabase=${mysqlData}/database
+mysqlInitScript=${PWD}/scripts/mysqlInit.sql
+
+giteaContainerName=Gitea
+giteaContainerID="${PWD}/giteaContainerID"
+mysqlContainerName=GiteaMysql
+mysqlContainerID="${PWD}/mysqlContainerID"
+mysqlInitTag="${PWD}/.${mysqlContainerName}Init"
+
+optionDNS1=192.168.0.21
+optionDNS2=192.168.0.22
+
+nullDev=/dev/null
+
+# Error
+COLOR_RED="\E[1;31m"
+# Targer or Status
+COLOR_GREEN="\E[1;32m"
+# Tips
+COLOR_YELLOW="\E[1;33m"
+COLOR_END="\E[0m"

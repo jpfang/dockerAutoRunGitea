@@ -1,0 +1,100 @@
+#!/bin/sh
+
+commonEnv=${PWD}/scripts/common_env
+
+source ${commonEnv}
+
+initMysql()
+{
+	if [ -z "`ifconfig docker0`" ]; then
+		printf "${COLOR_YELLOW}Can NOT find${COLOR_END} ${COLOR_RED}docker environment${COLOR_END}\n"
+		exit -1
+	fi
+
+	local rootMysqlPassword=$1
+	local giteaMysqlAccount=$2
+	local giteaMysqlPassword=$3
+	local giteaServerDatabaseName=$4
+	mysqlInitScriptSetting="${mysqlInitScript}.setting"
+
+	cp ${mysqlInitScript} ${mysqlInitScriptSetting}
+
+	sed -i "s#<gitea_user>#${giteaMysqlAccount}#" "${mysqlInitScriptSetting}"
+	sed -i "s#<gitea_password>#${giteaMysqlPassword}#" "${mysqlInitScriptSetting}"
+	sed -i "s#<gitea_server_db>#${giteaServerDatabaseName}#" "${mysqlInitScriptSetting}"
+
+	local docker0IP=`ifconfig docker0 | grep 'inet addr:' | cut -d ':' -f2 | awk '{print $1}'`
+
+	printf "${COLOR_YELLOW}Please wait few secs${COLOR_END} to let ${COLOR_GREEN}${mysqlContainerName} initial done!${COLOR_END}\n"
+	until mysql -h ${docker0IP} -uroot -p${rootMysqlPassword} < ${mysqlInitScriptSetting}
+	do
+		printf "${COLOR_GREEN}Try to connect ${mysqlContainerName}${COLOR_END}\n"
+		sleep 30
+	done
+
+	printf "${COLOR_YELLOW}Setting ${mysqlContainerName}${COLOR_END} done\n"
+
+	rm ${mysqlInitScriptSetting}
+}
+
+startMysql()
+{
+	rootMysqlPassword=""
+	
+	if [ ! -d ${mysqlData} ] || [ -e ${mysqlInitTag} ]; then
+		mkdir -p ${mysqlData}
+		touch ${mysqlInitTag}
+		
+		printf "${COLOR_YELLOW}First to create${COLOR_END} ${COLOR_GREEN}${mysqlContainerName}${COLOR_END}:\n"
+		printf "Please type in ${COLOR_YELLOW}password${COLOR_END} for ${COLOR_GREEN}${mysqlContainerName} root account${COLOR_END} initial:\n"
+		read rootMysqlPassword
+	fi
+	
+	if [ -f ${mysqlContainerID} ]; then
+		printf "${COLOR_YELLOW}Starting${COLOR_END} ${COLOR_GREEN}${mysqlContainerName}...${COLOR_END}\n"
+		
+		[ -z "`docker ps | grep -w ${mysqlContainerName}`" ] && docker start `cat ${mysqlContainerID}` > ${nullDev} || printf "${COLOR_YELLOW}${mysqlContainerName}${COLOR_END} ${COLOR_GREEN}already running!${COLOR_END}\n"
+	else
+		printf "${COLOR_YELLOW}Creating${COLOR_END} ${COLOR_GREEN}${mysqlContainerName}...${COLOR_END}\n"
+
+		docker run -d --name=${mysqlContainerName} -p 3306:3306 -v ${mysqlDatabase}:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=${rootMysqlPassword} "${dockerMysqlImage}" > ${mysqlContainerID}
+	fi
+
+	if [ -e ${mysqlInitTag} ]; then	
+		printf "Please type in ${COLOR_YELLOW}new account for ${giteaContainerName}${COLOR_END} to login ${COLOR_GREEN}${mysqlContainerName}${COLOR_END}:\n"
+		read giteaMysqlAccount
+	
+		if [ "${giteaMysqlAccount}" == "root" ]; then
+			printf "${COLOR_YELLOW}New mysql account${COLOR_END} ${COLOR_RED}can NOT be${COLOR_END} ${COLOR_GREEN}root${COLOR_END}\n"
+			exit -1
+		fi
+
+		printf "Please type in ${COLOR_YELLOW}password${COLOR_END} for ${COLOR_GREEN}${mysqlContainerName} ${giteaMysqlAccount} account${COLOR_END} initial:\n"
+		read giteaMysqlPassword
+		
+		printf "Please type in ${COLOR_YELLOW}new database name${COLOR_END} for ${COLOR_GREEN}${mysqlContainerName}${COLOR_END} initial:\n"
+		read giteaServerDatabaseName
+
+		initMysql ${rootMysqlPassword} ${giteaMysqlAccount} ${giteaMysqlPassword} ${giteaServerDatabaseName}
+
+		rm -f ${mysqlInitTag}
+	fi
+}
+
+startGitea()
+{
+	[ ! -d ${giteaData} ] && mkdir -p ${giteaData}
+	
+	if [ -f ${giteaContainerID} ] ; then
+		printf "${COLOR_YELLOW}Starting${COLOR_END} ${COLOR_GREEN}${giteaContainerName}...${COLOR_END}\n"
+		[ -z "`docker ps | grep -w ${giteaContainerName}`" ] && docker start `cat ${giteaContainerID}` > ${nullDev} || printf "${COLOR_YELLOW}${giteaContainerName}${COLOR_END} ${COLOR_GREEN}already running!${COLOR_END}\n"
+	else
+		printf "${COLOR_YELLOW}Creating${COLOR_END} ${COLOR_GREEN}${giteaContainerName}...${COLOR_END}\n"
+
+		docker run -d  --name=${giteaContainerName} --dns=${optionDNS1} --dns=${optionDNS2} -p 1022:22 -p 80:3000 -v ${giteaData}:/data ${dockerGiteaImage} > ${giteaContainerID}
+	fi
+}
+
+startMysql
+
+startGitea

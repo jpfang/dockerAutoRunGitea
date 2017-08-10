@@ -1,0 +1,29 @@
+#!/bin/sh
+
+source ${PWD}/scripts/common_env
+
+stopMysql()
+{
+	if [ -f ${mysqlContainerID} ] && [ -n "`docker ps | grep -w ${mysqlContainerName}`" ]; then
+		printf "${COLOR_YELLOW}Stoping${COLOR_END} ${COLOR_GREEN}${mysqlContainerName}...${COLOR_END}\n"
+		
+		docker stop `cat ${mysqlContainerID}` > ${nullDev}
+	else
+		printf "${COLOR_YELLOW}${mysqlContainerName}${COLOR_END} ${COLOR_RED}not running!${COLOR_END}\n"
+	fi
+}
+
+stopGitea()
+{
+	if [ -f ${giteaContainerID} ] && [ -n "`docker ps | grep -w ${giteaContainerName}`" ] ; then
+		printf "${COLOR_YELLOW}Stoping${COLOR_END} ${COLOR_GREEN}${giteaContainerName}...${COLOR_END}\n"
+		
+		docker stop `cat ${giteaContainerID}` > ${nullDev}
+	else
+		printf "${COLOR_YELLOW}${giteaContainerName}${COLOR_END} ${COLOR_RED}not running!${COLOR_END}\n"
+	fi
+}
+
+stopMysql
+
+stopGitea
