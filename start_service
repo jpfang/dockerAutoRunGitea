@@ -23,10 +23,10 @@ initMysql()
 	sed -i "s#<gitea_password>#${giteaMysqlPassword}#" "${mysqlInitScriptSetting}"
 	sed -i "s#<gitea_server_db>#${giteaServerDatabaseName}#" "${mysqlInitScriptSetting}"
 
-	local docker0IP=`ifconfig docker0 | grep 'inet addr:' | cut -d ':' -f2 | awk '{print $1}'`
+	local externalInterfaceIP=`ifconfig ${externalInterface} | grep 'inet addr:' | cut -d ':' -f2 | awk '{print $1}'`
 
 	printf "${COLOR_YELLOW}Please wait few secs${COLOR_END} to let ${COLOR_GREEN}${mysqlContainerName} initial done!${COLOR_END}\n"
-	until mysql -h ${docker0IP} -uroot -p${rootMysqlPassword} < ${mysqlInitScriptSetting}
+	until mysql -h "${externalInterfaceIP}" --port ${mysqlExternalPort} -uroot -p${rootMysqlPassword} < ${mysqlInitScriptSetting}
 	do
 		printf "${COLOR_GREEN}Try to connect ${mysqlContainerName}${COLOR_END}\n"
 		sleep 30
@@ -57,7 +57,7 @@ startMysql()
 	else
 		printf "${COLOR_YELLOW}Creating${COLOR_END} ${COLOR_GREEN}${mysqlContainerName}...${COLOR_END}\n"
 
-		docker run -d --name=${mysqlContainerName} -p 3306:3306 -v ${mysqlDatabase}:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=${rootMysqlPassword} "${dockerMysqlImage}" > ${mysqlContainerID}
+		docker run -d --name=${mysqlContainerName} -p ${mysqlExternalPort}:${mysqlDockerPort} -v ${mysqlDatabase}:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=${rootMysqlPassword} "${dockerMysqlImage}" > ${mysqlContainerID}
 	fi
 
 	if [ -e ${mysqlInitTag} ]; then	
@@ -91,7 +91,7 @@ startGitea()
 	else
 		printf "${COLOR_YELLOW}Creating${COLOR_END} ${COLOR_GREEN}${giteaContainerName}...${COLOR_END}\n"
 
-		docker run -d  --name=${giteaContainerName} --dns=${optionDNS1} --dns=${optionDNS2} -p 1022:22 -p 80:3000 -v ${giteaData}:/data ${dockerGiteaImage} > ${giteaContainerID}
+		docker run -d  --name=${giteaContainerName} --dns=${optionDNS1} --dns=${optionDNS2} -p ${giteaSshExternalPort}:${giteaSshDockerPort} -p ${giteaHttpExternalPort}:${giteaHttpDockerPort} -v ${giteaData}:/data ${dockerGiteaImage} > ${giteaContainerID}
 	fi
 }
 

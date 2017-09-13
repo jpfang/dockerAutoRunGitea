@@ -13,6 +13,14 @@ mysqlContainerName=GiteaMysql
 mysqlContainerID="${PWD}/mysqlContainerID"
 mysqlInitTag="${PWD}/.${mysqlContainerName}Init"
 
+externalInterface="eth0"
+giteaHttpExternalPort=80
+giteaHttpDockerPort=3000
+giteaSshExternalPort=1022
+giteaSshDockerPort=22
+mysqlExternalPort=3310
+mysqlDockerPort=3306
+
 optionDNS1=192.168.0.21
 optionDNS2=192.168.0.22
 
